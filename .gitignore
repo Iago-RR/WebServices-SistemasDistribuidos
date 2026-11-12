@@ -1,0 +1,30 @@
+# Ambientes virtuais Python
+venv/
+.venv/
+env/
+ENV/
+
+# Bytecode e cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Arquivos de ambiente e configuração local
+.env
+.env.local
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos do Sistema Operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Documento do enunciado (opcional manter ou ignorar caso não queira subir o PDF pessoal)
+Iago Ravide Rodrigues Maia irrm - Atividade Web Services.pdf
