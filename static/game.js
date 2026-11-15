@@ -163,16 +163,18 @@ async function submitCheckout() {
 
   document.getElementById("soapReceiptNumeric").textContent = `$${receipt.amount_numeric.toFixed(2)}`;
   document.getElementById("soapReceiptWords").textContent = receipt.amount_in_dollars_words;
+  document.getElementById("soapProximityWords").textContent = receipt.proximity_certification;
   document.getElementById("soapReceiptMeta").textContent =
-    `Operação: ${receipt.operation} | Latência: ${receipt.latency_ms} ms`;
+    `Operações SOAP: ${receipt.operation} | Latência Total: ${receipt.latency_ms} ms`;
 
   const player = data.player;
   const dp = data.dp_optimization;
   document.getElementById("resPlayerScore").textContent = `${player.total_final_score} pts`;
-  document.getElementById("resPlayerDetails").textContent = `Gasto: $${player.exact_total.toFixed(2)}`;
+  document.getElementById("resPlayerDetails").textContent = `Mochila: ${player.merchant_score} pts | Gasto: $${player.exact_total.toFixed(2)}`;
   document.getElementById("resOptimalScore").textContent = `${dp.max_merchant_value} pts`;
   document.getElementById("resOptimalDetails").textContent = `Custo: $${dp.total_exact_price.toFixed(2)}`;
-  document.getElementById("resEfficiency").textContent = `${player.efficiency_vs_dp_percent}%`;
+  document.getElementById("resEfficiency").textContent =
+    `${player.proximity_label} (Faltaram ${player.points_missing} pts para o ótimo)`;
   document.getElementById("resComplexity").textContent = dp.complexity_time;
 
   document.getElementById("optimalRouteGames").textContent = dp.optimal_games

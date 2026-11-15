@@ -222,6 +222,28 @@ def convert_number_to_words_soap(number: int) -> Dict[str, Any]:
     }
 
 
+def certify_knapsack_proximity_soap(proximity_percent: float) -> Dict[str, Any]:
+    """
+    Consome o Web Service SOAP (operação 'NumberToWords' do WSDL) para certificar
+    por extenso o percentual de proximidade do jogador em relação à solução ótima
+    do algoritmo da Mochila 0/1 (Ex: 85.0% -> 'eighty five percent').
+    """
+    rounded_pct = max(0, min(100, int(round(proximity_percent))))
+    soap_res = convert_number_to_words_soap(rounded_pct)
+    words = soap_res["result_text"]
+    return {
+        **soap_res,
+        "proximity_numeric": round(float(proximity_percent), 1),
+        "proximity_rounded": rounded_pct,
+        "proximity_in_words": f"{words} percent",
+        "certification_text": (
+            f"{round(float(proximity_percent), 1)}% de proximidade da solução ideal "
+            f"(SOAP XML: '{words} percent')"
+        ),
+    }
+
+
+
 if __name__ == "__main__":
     print("=" * 70)
     print("TESTE ISOLADO - APLICAÇÃO SOAP (DataAccess WSDL - XML)")

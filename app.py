@@ -10,6 +10,7 @@ import random
 from flask import Flask, jsonify, request, send_from_directory
 from services.rest_client import fetch_steam_deals
 from services.soap_client import (
+    certify_knapsack_proximity_soap,
     convert_amount_to_dollars_soap,
     convert_number_to_words_soap,
 )
@@ -155,14 +156,48 @@ def checkout_round():
             if over_budget
             else round((player_merchant_score / max_optimal_score) * 100, 1)
         )
+        points_missing = max(0, max_optimal_score - player_merchant_score)
 
-        # Chama o Web Service SOAP (NumberToDollars) para emitir o cheque oficial da compra
+        if over_budget:
+            proximity_label = "0% — Orçamento Estourado (Solução Inválida)"
+        elif efficiency_pct >= 100.0:
+            proximity_label = "100% — Solução Ideal Exata (Ótimo Global da Mochila 0/1!)"
+        elif efficiency_pct >= 80.0:
+            proximity_label = f"{efficiency_pct}% de proximidade — Muito próximo da Rota Ideal!"
+        elif efficiency_pct >= 50.0:
+            proximity_label = f"{efficiency_pct}% de proximidade — Rota Intermediária (Sub-ótima)"
+        else:
+            proximity_label = f"{efficiency_pct}% de proximidade — Distante da Solução Ideal"
+
+        # 1) Chama o Web Service SOAP (NumberToDollars) para emitir o cheque oficial da compra
         amount_for_soap = (
             player_exact_total
             if player_exact_total > 0
             else float(dp_solution["total_exact_price"])
         )
         soap_receipt = convert_amount_to_dollars_soap(amount_for_soap)
+
+        # 2) Chama o Web Service SOAP (NumberToWords) para certificar por extenso a % de proximidade da Mochila 0/1
+        soap_proximity = certify_knapsack_proximity_soap(efficiency_pct)
+
+        combined_soap_request = (
+            f"<!-- 1. Requisição SOAP: NumberToDollars (${amount_for_soap:.2f}) -->\n"
+            f"{soap_receipt['raw_xml_request']}\n\n"
+            f"<!-- 2. Requisição SOAP: NumberToWords (Proximidade da Mochila: {soap_proximity['proximity_rounded']}%) -->\n"
+            f"{soap_proximity['raw_xml_request']}"
+        )
+        combined_soap_response = (
+            f"<!-- 1. Resposta SOAP: NumberToDollars (${amount_for_soap:.2f}) -->\n"
+            f"{soap_receipt['raw_xml_response']}\n\n"
+            f"<!-- 2. Resposta SOAP: NumberToWords (Proximidade da Mochila: {soap_proximity['proximity_rounded']}%) -->\n"
+            f"{soap_proximity['raw_xml_response']}"
+        )
+        total_soap_latency = round(
+            soap_receipt["latency_ms"] + soap_proximity["latency_ms"], 2
+        )
+        total_soap_bytes = (
+            soap_receipt["payload_bytes"] + soap_proximity["payload_bytes"]
+        )
 
         return jsonify(
             {
@@ -178,17 +213,22 @@ def checkout_round():
                         0 if over_budget else player_merchant_score + guess_bonus_points
                     ),
                     "efficiency_vs_dp_percent": efficiency_pct,
+                    "proximity_label": proximity_label,
+                    "points_missing": points_missing,
                     "guess_results": guess_results,
                 },
                 "soap_guild_receipt": {
                     "amount_numeric": amount_for_soap,
                     "amount_in_dollars_words": soap_receipt["result_text"],
-                    "operation": soap_receipt["operation"],
+                    "proximity_percent": efficiency_pct,
+                    "proximity_in_words_soap": soap_proximity["proximity_in_words"],
+                    "proximity_certification": soap_proximity["certification_text"],
+                    "operation": "NumberToDollars + NumberToWords (Proximidade PD)",
                     "wsdl_url": soap_receipt["wsdl_url"],
-                    "latency_ms": soap_receipt["latency_ms"],
-                    "payload_bytes": soap_receipt["payload_bytes"],
-                    "raw_request": soap_receipt["raw_xml_request"],
-                    "raw_payload": soap_receipt["raw_xml_response"],
+                    "latency_ms": total_soap_latency,
+                    "payload_bytes": total_soap_bytes,
+                    "raw_request": combined_soap_request,
+                    "raw_payload": combined_soap_response,
                 },
                 "dp_optimization": dp_solution,
             }
