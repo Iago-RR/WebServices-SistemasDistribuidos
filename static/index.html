@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste WebServices - REST + SOAP (Protótipo)</title>
+</head>
+<body>
+  <h1>Teste de Integração: Mercador da Steam (REST + SOAP)</h1>
+  <p>Página de teste inicial para validar retorno JSON (CheapShark) e XML (SOAP WSDL).</p>
+  <hr>
+
+  <div>
+    <label>Orçamento ($): </label>
+    <select id="budgetSelect">
+      <option value="20">20</option>
+      <option value="25">25</option>
+      <option value="30" selected>30</option>
+      <option value="35">35</option>
+      <option value="40">40</option>
+    </select>
+    <button id="btnNewRound">Carregar Rodada (Testar REST/SOAP)</button>
+    <button id="btnHint">Pedir Dica PD</button>
+    <button id="btnTogglePrices">Mostrar/Ocultar Preços</button>
+    <button id="btnCheckout">Finalizar e Gerar Recibo SOAP</button>
+  </div>
+
+  <p>
+    <b>Orçamento atual:</b> <span id="budgetAmount">$30</span>
+    (<span id="budgetWordsSoap">aguardando SOAP...</span>) |
+    <b>Na mochila:</b> <span id="cartCost">$0</span> (<span id="cartCount">0</span>) |
+    <b>Pontos:</b> <span id="cartScore">0</span> |
+    <b>Dicas:</b> <span id="hintCounter">0/3</span>
+  </p>
+
+  <div id="hintsList"></div>
+  <hr>
+
+  <h3>Lista de Jogos Retornados (API REST)</h3>
+  <div id="gamesGrid">Carregando...</div>
+
+  <hr>
+  <div id="roundResultPanel" style="display:none;">
+    <h3>Resultado do Checkout (SOAP + Programação Dinâmica)</h3>
+    <p><b>Valor Numérico:</b> <span id="soapReceiptNumeric"></span></p>
+    <p><b>Retorno SOAP (NumberToDollars):</b> <span id="soapReceiptWords"></span></p>
+    <p><small id="soapReceiptMeta"></small></p>
+
+    <p><b>Sua Pontuação:</b> <span id="resPlayerScore"></span> (<span id="resPlayerDetails"></span>)</p>
+    <p><b>Ótimo Programação Dinâmica:</b> <span id="resOptimalScore"></span> (<span id="resOptimalDetails"></span>)</p>
+    <p><b>Eficiência:</b> <span id="resEfficiency"></span> | <span id="resComplexity"></span></p>
+
+    <p><b>Jogos da Rota Ótima:</b> <span id="optimalRouteGames"></span></p>
+
+    <table border="1" cellpadding="4" cellspacing="0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Jogo</th>
+          <th>Decisão PD</th>
+          <th>Custo</th>
+          <th>Valor</th>
+          <th>Motivo</th>
+        </tr>
+      </thead>
+      <tbody id="dpStepsBody"></tbody>
+    </table>
+    <hr>
+  </div>
+
+  <h3>Logs de Telemetria (Teste Bruto)</h3>
+  <p>
+    REST Latência: <span id="restLatency">--</span> | REST Bytes: <span id="restBytes">--</span> <br>
+    SOAP Latência: <span id="soapLatency">--</span> | SOAP Bytes: <span id="soapBytes">--</span>
+  </p>
+
+  <h4>JSON Bruto Recebido (REST):</h4>
+  <pre id="rawRestJson" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
+
+  <h4>XML Recebido (SOAP Response):</h4>
+  <pre id="rawSoapXml" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
+
+  <h4>XML Enviado (SOAP Request):</h4>
+  <pre id="rawSoapReq" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
+
+  <script src="/static/game.js"></script>
+</body>
+</html>
