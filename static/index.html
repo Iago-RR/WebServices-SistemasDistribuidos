@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Teste WebServices - REST + SOAP (Protótipo)</title>
+  <title>Teste WebServices - REST + SOAP (Protótipo Mochila 0/1)</title>
 </head>
 <body>
-  <h1>Teste de Integração: Mercador da Steam (REST + SOAP)</h1>
-  <p>Página de teste inicial para validar retorno JSON (CheapShark) e XML (SOAP WSDL).</p>
+  <h1>Teste de Integração: Mercador da Steam (Mochila 0/1 com 10 Jogos)</h1>
+  <p>Página de teste inicial para validar retorno JSON (CheapShark REST), XML (SOAP WSDL) e Programação Dinâmica.</p>
   <hr>
 
   <div>
@@ -18,49 +18,53 @@
       <option value="35">35</option>
       <option value="40">40</option>
     </select>
-    <button id="btnNewRound">Carregar Rodada (Testar REST/SOAP)</button>
-    <button id="btnHint">Pedir Dica PD</button>
-    <button id="btnTogglePrices">Mostrar/Ocultar Preços</button>
-    <button id="btnCheckout">Finalizar e Gerar Recibo SOAP</button>
+    <button id="btnNewRound">Sortear Nova Rodada (10 Jogos + Evento)</button>
+    <button id="btnHint">Pedir Dica PD (<span id="hintCounter">0/3</span>)</button>
+    <button id="btnCheckout">Finalizar Mochila e Emitir Recibo SOAP</button>
   </div>
+
+  <p style="background:#eee; padding:6px; border:1px solid #999;">
+    <b>TWIST / EVENTO DE MERCADO DA RODADA:</b> <span id="twistName">Carregando...</span> —
+    <span id="twistRule"></span>
+  </p>
 
   <p>
     <b>Orçamento atual:</b> <span id="budgetAmount">$30</span>
-    (<span id="budgetWordsSoap">aguardando SOAP...</span>) |
-    <b>Na mochila:</b> <span id="cartCost">$0</span> (<span id="cartCount">0</span>) |
-    <b>Pontos:</b> <span id="cartScore">0</span> |
-    <b>Dicas:</b> <span id="hintCounter">0/3</span>
+    (SOAP NumberToWords: <span id="budgetWordsSoap">aguardando...</span>) |
+    <b>Custo na Mochila:</b> <span id="cartCost">$0</span> (<span id="cartCount">0</span>) |
+    <b>Pontos Acumulados:</b> <span id="cartScore">0 pts</span>
   </p>
 
   <div id="hintsList"></div>
   <hr>
 
-  <h3>Lista de Jogos Retornados (API REST)</h3>
+  <h3>Vitrine com 10 Jogos da Steam (API REST - Preços e Pontos Visíveis)</h3>
   <div id="gamesGrid">Carregando...</div>
 
   <hr>
   <div id="roundResultPanel" style="display:none;">
-    <h3>Resultado do Checkout (SOAP + Programação Dinâmica)</h3>
-    <p><b>Valor Numérico:</b> <span id="soapReceiptNumeric"></span></p>
+    <h3>Resultado do Checkout (SOAP + Programação Dinâmica vs Escolha Gulosa)</h3>
+    <p><b>Valor Gasto (Cheque):</b> <span id="soapReceiptNumeric"></span></p>
     <p><b>Retorno SOAP (NumberToDollars):</b> <span id="soapReceiptWords"></span></p>
-    <p><b>Certificação SOAP de Proximidade da Mochila (NumberToWords):</b> <span id="soapProximityWords"></span></p>
+    <p><b>Certificação SOAP de Proximidade (NumberToWords):</b> <span id="soapProximityWords"></span></p>
     <p><small id="soapReceiptMeta"></small></p>
 
-    <p><b>Sua Pontuação:</b> <span id="resPlayerScore"></span> (<span id="resPlayerDetails"></span>)</p>
-    <p><b>Ótimo Programação Dinâmica:</b> <span id="resOptimalScore"></span> (<span id="resOptimalDetails"></span>)</p>
+    <p><b>Sua Mochila:</b> <span id="resPlayerScore"></span> (<span id="resPlayerDetails"></span>)</p>
+    <p><b>Escolha Gulosa (Intuição Humana):</b> <span id="resGreedyDetails"></span></p>
+    <p><b>Ótimo Global (Programação Dinâmica):</b> <span id="resOptimalScore"></span> (<span id="resOptimalDetails"></span>)</p>
     <p><b>Proximidade da Solução Ideal (Mochila 0/1):</b> <span id="resEfficiency"></span> | <span id="resComplexity"></span></p>
 
-    <p><b>Jogos da Rota Ótima:</b> <span id="optimalRouteGames"></span></p>
+    <p><b>Jogos da Rota Ótima (PD):</b> <span id="optimalRouteGames"></span></p>
 
     <table border="1" cellpadding="4" cellspacing="0">
       <thead>
         <tr>
           <th>#</th>
-          <th>Jogo</th>
+          <th>Jogo (1 a 10)</th>
           <th>Decisão PD</th>
-          <th>Custo</th>
+          <th>Custo Mochila</th>
           <th>Valor</th>
-          <th>Motivo</th>
+          <th>Motivo (Subproblema DP[i][w])</th>
         </tr>
       </thead>
       <tbody id="dpStepsBody"></tbody>

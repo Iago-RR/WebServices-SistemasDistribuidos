@@ -1,10 +1,129 @@
 """
 Módulo de Otimização & Programação Dinâmica (Mochila 0/1 - Knapsack Problem)
-Calcula a rota ótima de compras do Mercador da Steam para um orçamento finito (Budget)
-e gera dicas táticas durante a rodada comparando a escolha gulosa com a solução ótima.
+Inclui:
+  1. Eventos Dinâmicos de Mercado ("Twist" da Rodada que altera pesos/valores)
+  2. Algoritmo de Programação Dinâmica (Ótimo Global O(N * W))
+  3. Comparação com Algoritmo Guloso (Heurística de Custo-Benefício) para demonstrar armadilhas gulosas
+  4. Geração de dicas táticas durante a rodada
 """
 
+import random
 from typing import Any, Dict, List
+
+
+ROUND_TWISTS: List[Dict[str, str]] = [
+    {
+        "id": "metacritic_festival",
+        "name": "🏆 Festival Aclamados pela Crítica",
+        "rule": "Jogos com Metacritic >= 82 ganham +45 pts de valor, mas pesam +$1 de Taxa Premium na mochila!",
+    },
+    {
+        "id": "flash_sale_frenzy",
+        "name": "⚡ Frenesi de Super Descontos (80%+ OFF)",
+        "rule": "Jogos com desconto real >= 80% na Steam recebem um bônus de +35% na pontuação do Mercador!",
+    },
+    {
+        "id": "indie_boost",
+        "name": "💎 Incentivo Indie (Caçador de Barganhas)",
+        "rule": "Jogos leves (custo base até $5) recebem +35 pts extras! Cuidado para não subestimar os baratinhos.",
+    },
+    {
+        "id": "guild_customs_tax",
+        "name": "⚖️ Taxa Alfandegária da Guilda (AAA)",
+        "rule": "Jogos de grande porte (Preço Normal >= $29.99) custam +$2 na mochila, mas rendem +40 pts extras!",
+    },
+]
+
+
+def apply_round_twist(
+    games: List[Dict[str, Any]], twist_id: str = ""
+) -> Dict[str, Any]:
+    """
+    Sorteia e aplica um modificador ("Twist" de mercado) nos 10 jogos da rodada,
+    alterando custos discretos e/ou pontuações de valor e criando armadilhas para a intuição gulosa.
+    """
+    chosen_twist = next(
+        (t for t in ROUND_TWISTS if t["id"] == twist_id),
+        random.choice(ROUND_TWISTS),
+    )
+    tid = chosen_twist["id"]
+
+    modified_games: List[Dict[str, Any]] = []
+    affected_count = 0
+
+    for g in games:
+        item = dict(g)
+        base_cost = int(item["discreteCost"])
+        base_val = int(item["merchantValue"])
+        twist_tag = ""
+
+        if tid == "metacritic_festival" and int(item["metacriticScore"]) >= 82:
+            item["discreteCost"] = base_cost + 1
+            item["merchantValue"] = base_val + 45
+            twist_tag = "🏆 Bônus Crítica (+45 pts, +$1 custo)"
+            affected_count += 1
+
+        elif tid == "flash_sale_frenzy" and float(item["savingsPercent"]) >= 80.0:
+            bonus = int(round(base_val * 0.35))
+            item["merchantValue"] = base_val + bonus
+            twist_tag = f"⚡ Super Promo (+{bonus} pts)"
+            affected_count += 1
+
+        elif tid == "indie_boost" and base_cost <= 5:
+            item["merchantValue"] = base_val + 35
+            twist_tag = "💎 Bônus Barganha (+35 pts)"
+            affected_count += 1
+
+        elif tid == "guild_customs_tax" and float(item["normalPrice"]) >= 29.99:
+            item["discreteCost"] = base_cost + 2
+            item["merchantValue"] = base_val + 40
+            twist_tag = "⚖️ Taxa AAA (+40 pts, +$2 custo)"
+            affected_count += 1
+
+        item["baseDiscreteCost"] = base_cost
+        item["baseMerchantValue"] = base_val
+        item["twistTag"] = twist_tag
+        item["efficiencyRatio"] = round(
+            item["merchantValue"] / max(1, item["discreteCost"]), 1
+        )
+        modified_games.append(item)
+
+    return {
+        "twist": {
+            **chosen_twist,
+            "affected_games_count": affected_count,
+        },
+        "games": modified_games,
+    }
+
+
+def _solve_greedy_baseline(
+    games: List[Dict[str, Any]], budget: int
+) -> Dict[str, Any]:
+    """
+    Simula a estratégia gulosa clássica (escolher sempre o jogo de maior razão Valor/Custo que cabe).
+    Serve para mostrar quando a Programação Dinâmica supera a intuição humana/gulosa!
+    """
+    sorted_by_density = sorted(
+        games,
+        key=lambda g: (g["merchantValue"] / max(1, g["discreteCost"]), g["merchantValue"]),
+        reverse=True,
+    )
+    rem = budget
+    picked = []
+    for g in sorted_by_density:
+        c = int(g["discreteCost"])
+        if c <= rem:
+            picked.append(g)
+            rem -= c
+
+    greedy_score = sum(int(g["merchantValue"]) for g in picked)
+    greedy_cost = sum(int(g["discreteCost"]) for g in picked)
+    return {
+        "greedy_score": greedy_score,
+        "greedy_cost": greedy_cost,
+        "greedy_titles": [g["title"] for g in picked],
+    }
 
 
 def solve_optimal_steam_bundle(
@@ -14,18 +133,8 @@ def solve_optimal_steam_bundle(
     Resolve o Problema da Mochila 0/1 (0/1 Knapsack) via Programação Dinâmica:
       DP[i][w] = max(DP[i-1][w], DP[i-1][w - cost_i] + value_i)
 
-    Parâmetros:
-      - games: lista de jogos da rodada (cada um com 'discreteCost' e 'merchantValue')
-      - budget: orçamento inteiro da rodada em dólares (ex: $25)
-
-    Retorna:
-      - optimal_games: subconjunto ótimo de jogos que maximiza o Score do Mercador
-      - max_merchant_value: valor máximo atingível
-      - total_discrete_cost: custo inteiro consumido pela rota ótima
-      - total_exact_price: soma exata em dólares (salePrice) dos jogos da rota ótima
-      - total_normal_value: soma dos preços originais sem desconto
-      - decision_steps: trilha passo a passo das decisões da Programação Dinâmica
-      - hints: dicas progressivas para o jogador durante a rodada
+    Para N = 10 jogos e orçamento W, reconstrói a Rota Ideal de Compras via backtracking
+    e compara com a Heurística Gulosa.
     """
     n = len(games)
     W = max(1, int(budget))
@@ -100,6 +209,10 @@ def solve_optimal_steam_bundle(
     total_normal_value = round(sum(float(g["normalPrice"]) for g in optimal_games), 2)
     max_merchant_value = dp[n][W]
 
+    # Compara com a escolha gulosa para identificar se havia uma "Armadilha Gulosa" na rodada
+    greedy_info = _solve_greedy_baseline(games, W)
+    dp_advantage = max_merchant_value - greedy_info["greedy_score"]
+
     # Análise de Densidade (Valor / Custo) para gerar dicas inteligentes na rodada
     ranked_by_ratio = sorted(
         games,
@@ -116,32 +229,43 @@ def solve_optimal_steam_bundle(
         )
         hints.append(
             {
-                "level": "Dica 1 — Heurística de Densidade (Valor/Custo)",
+                "level": "Dica 1 — Maior Eficiência (Pontos por Dólar)",
                 "text": (
-                    f"O jogo '{best_ratio_game['title']}' possui a maior eficiência marginal da vitrine "
-                    f"({ratio} pts por dólar, Metacritic {best_ratio_game['metacriticScore']})."
+                    f"O jogo '{best_ratio_game['title']}' entrega {ratio} pts por cada $1 de custo na mochila "
+                    f"(Custo: ${best_ratio_game['discreteCost']} | Valor: +{best_ratio_game['merchantValue']} pts)."
+                ),
+            }
+        )
+
+    if dp_advantage > 0:
+        hints.append(
+            {
+                "level": "Dica 2 — Alerta de Armadilha Gulosa!",
+                "text": (
+                    f"Cuidado! Escolher apenas os jogos de maior custo-benefício isolado deixa dinheiro ocioso e rende "
+                    f"{greedy_info['greedy_score']} pts, enquanto a Programação Dinâmica alcança {max_merchant_value} pts (+{dp_advantage} pts)!"
+                ),
+            }
+        )
+    elif optimal_games:
+        anchor_game = max(optimal_games, key=lambda g: g["merchantValue"])
+        hints.append(
+            {
+                "level": "Dica 2 — Peça-Chave da Solução Ótima",
+                "text": (
+                    f"Na tabela DP[{n}][{W}], a rota ideal inclui obrigatoriamente '{anchor_game['title']}' "
+                    f"(Custo: ${anchor_game['discreteCost']} | +{anchor_game['merchantValue']} pts)."
                 ),
             }
         )
 
     if optimal_games:
-        anchor_game = max(optimal_games, key=lambda g: g["merchantValue"])
         hints.append(
             {
-                "level": "Dica 2 — Subproblema da Programação Dinâmica",
+                "level": "Dica 3 — Estrutura da Mochila Perfeita",
                 "text": (
-                    f"Na tabela DP[{n}][{W}], a rota ótima inclui '{anchor_game['title']}' "
-                    f"(custo aproximado de ${anchor_game['discreteCost']} e +{anchor_game['merchantValue']} pts de valor)."
-                ),
-            }
-        )
-
-        hints.append(
-            {
-                "level": "Dica 3 — Estrutura da Cesta Ideal",
-                "text": (
-                    f"A solução ótima seleciona exatamente {len(optimal_games)} jogo(s), "
-                    f"consumindo ${total_discrete_cost} de ${W} disponíveis e alcançando {max_merchant_value} pontos."
+                    f"A combinação ótima dos 10 jogos leva exatamente {len(optimal_games)} jogos, "
+                    f"gastando ${total_discrete_cost} de ${W} e somando {max_merchant_value} pontos."
                 ),
             }
         )
@@ -156,6 +280,10 @@ def solve_optimal_steam_bundle(
         "total_exact_price": total_exact_price,
         "total_normal_value": total_normal_value,
         "total_savings": round(total_normal_value - total_exact_price, 2),
+        "greedy_baseline": {
+            **greedy_info,
+            "dp_beats_greedy_by": dp_advantage,
+        },
         "optimal_game_ids": [g["gameID"] for g in optimal_games],
         "optimal_games": optimal_games,
         "decision_steps": decision_steps,

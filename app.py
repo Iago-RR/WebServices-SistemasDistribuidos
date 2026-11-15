@@ -1,9 +1,9 @@
 """
-Servidor Principal — O Mercador da Steam (Steam Price Guesser & Knapsack Optimizer)
+Servidor Principal — O Mercador da Steam (Desafio da Mochila 0/1 + Eventos de Mercado)
 Integra:
-  1. API REST Pública (CheapShark Steam Deals - JSON)
-  2. Web Service SOAP Público (DataAccess NumberConversion - WSDL/XML)
-  3. Otimizador de Programação Dinâmica (Mochila 0/1 - Rotas Ideais e Dicas)
+  1. API REST Pública (CheapShark Steam Deals - JSON) -> Vitrine com 10 jogos reais
+  2. Web Service SOAP Público (DataAccess NumberConversion - WSDL/XML) -> Cheque + Proximidade
+  3. Otimizador de Programação Dinâmica (Mochila 0/1, Eventos de Mercado e Comparação Gulosa)
 """
 
 import random
@@ -14,7 +14,7 @@ from services.soap_client import (
     convert_amount_to_dollars_soap,
     convert_number_to_words_soap,
 )
-from services.optimizer import solve_optimal_steam_bundle
+from services.optimizer import apply_round_twist, solve_optimal_steam_bundle
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -29,16 +29,17 @@ def create_round():
     """
     Inicia uma nova rodada do jogo:
     1. Consome a API REST (CheapShark) para buscar ofertas reais da Steam em JSON.
-    2. Seleciona 6 jogos variados para a vitrine do Mercador.
-    3. Executa o algoritmo de Programação Dinâmica (Mochila 0/1) para calcular a rota ótima e dicas.
-    4. Consome o Web Service SOAP (NumberToWords) para registrar o orçamento oficial por extenso em XML.
+    2. Seleciona 10 jogos variados para a vitrine do Mercador.
+    3. Sorteia e aplica um "Twist" (Evento de Mercado da Rodada) que altera pesos/valores.
+    4. Executa o algoritmo de Programação Dinâmica (Mochila 0/1) para calcular a rota ótima e dicas.
+    5. Consome o Web Service SOAP (NumberToWords) para registrar o orçamento oficial por extenso em XML.
     """
     try:
         requested_budget = request.args.get("budget", type=int)
         budget = requested_budget if requested_budget else random.choice([20, 25, 30, 35, 40])
 
         rest_data = fetch_steam_deals(
-            page_size=28,
+            page_size=40,
             upper_price=max(18, budget - 2),
             lower_price=1,
             min_metacritic=65,
@@ -47,10 +48,15 @@ def create_round():
         available_games = [
             g for g in rest_data["games"] if 1 <= g["discreteCost"] <= budget - 2
         ]
-        if len(available_games) < 6:
+        if len(available_games) < 10:
             available_games = rest_data["games"]
 
-        round_games = random.sample(available_games, k=min(6, len(available_games)))
+        sampled_games = random.sample(available_games, k=min(10, len(available_games)))
+
+        # Aplica o "Twist" (Evento de Mercado da Rodada) nos 10 jogos
+        twist_result = apply_round_twist(sampled_games)
+        round_games = twist_result["games"]
+        round_twist = twist_result["twist"]
 
         # Calcula a solução ótima via Programação Dinâmica (Mochila 0/1)
         dp_solution = solve_optimal_steam_bundle(round_games, budget)
@@ -63,6 +69,7 @@ def create_round():
                 "status": "ok",
                 "budget": budget,
                 "budget_in_words_soap": soap_budget_data["result_text"],
+                "twist": round_twist,
                 "games": round_games,
                 "dp_optimization": dp_solution,
                 "telemetry": {
@@ -97,15 +104,15 @@ def create_round():
 def checkout_round():
     """
     Finaliza a rodada do jogador:
-    1. Avalia os palpites de preço (Steam Price Guesser) e a mochila escolhida pelo jogador.
-    2. Consome o Web Service SOAP (NumberToDollars) para emitir o Cheque Oficial em XML.
-    3. Compara o resultado do jogador com a Rota Ótima da Programação Dinâmica.
+    1. Avalia a mochila escolhida pelo jogador entre os 10 jogos disponíveis.
+    2. Consome o Web Service SOAP (NumberToDollars + NumberToWords) para emitir o Cheque Oficial
+       e certificar a porcentagem de proximidade da solução ótima em XML.
+    3. Compara o resultado do jogador com a Heurística Gulosa e com o Ótimo da Programação Dinâmica.
     """
     try:
         payload = request.get_json(force=True) or {}
         round_games = payload.get("games", [])
         selected_ids = set(str(gid) for gid in payload.get("selectedGameIds", []))
-        price_guesses = payload.get("priceGuesses", {})
         budget = int(payload.get("budget", 30))
 
         chosen_games = [
@@ -116,39 +123,10 @@ def checkout_round():
         player_exact_total = round(sum(float(g["salePrice"]) for g in chosen_games), 2)
         player_merchant_score = sum(int(g["merchantValue"]) for g in chosen_games)
 
-        # Avalia os palpites de preço (Price Guesser)
-        guess_results = []
-        guess_bonus_points = 0
-        for game in round_games:
-            gid = str(game.get("gameID"))
-            actual_price = float(game.get("salePrice", 0.0))
-            raw_guess = price_guesses.get(gid)
-            if raw_guess is not None and str(raw_guess).strip() != "":
-                try:
-                    guessed_val = float(raw_guess)
-                    diff = abs(actual_price - guessed_val)
-                    accuracy_pct = max(
-                        0.0, round((1.0 - (diff / max(actual_price, 5.0))) * 100, 1)
-                    )
-                    bonus = int(round(accuracy_pct * 0.25))
-                    guess_bonus_points += bonus
-                    guess_results.append(
-                        {
-                            "gameID": gid,
-                            "title": game["title"],
-                            "guessedPrice": round(guessed_val, 2),
-                            "actualPrice": actual_price,
-                            "diff": round(diff, 2),
-                            "accuracyPercent": accuracy_pct,
-                            "bonusPoints": bonus,
-                        }
-                    )
-                except ValueError:
-                    pass
-
-        # recalcula solução ótima da Programação Dinâmica para comparação final
+        # Recalcula solução ótima da Programação Dinâmica para comparação final
         dp_solution = solve_optimal_steam_bundle(round_games, budget)
         max_optimal_score = max(1, int(dp_solution["max_merchant_value"]))
+        greedy_score = int(dp_solution["greedy_baseline"]["greedy_score"])
 
         over_budget = player_discrete_cost > budget
         efficiency_pct = (
@@ -157,14 +135,15 @@ def checkout_round():
             else round((player_merchant_score / max_optimal_score) * 100, 1)
         )
         points_missing = max(0, max_optimal_score - player_merchant_score)
+        beat_greedy = (not over_budget) and (player_merchant_score > greedy_score)
 
         if over_budget:
-            proximity_label = "0% — Orçamento Estourado (Solução Inválida)"
+            proximity_label = "0% — Orçamento Estourado (Mochila Inválida)"
         elif efficiency_pct >= 100.0:
             proximity_label = "100% — Solução Ideal Exata (Ótimo Global da Mochila 0/1!)"
-        elif efficiency_pct >= 80.0:
-            proximity_label = f"{efficiency_pct}% de proximidade — Muito próximo da Rota Ideal!"
-        elif efficiency_pct >= 50.0:
+        elif efficiency_pct >= 85.0:
+            proximity_label = f"{efficiency_pct}% de proximidade — Excelente (Muito próximo da Rota Ideal!)"
+        elif efficiency_pct >= 65.0:
             proximity_label = f"{efficiency_pct}% de proximidade — Rota Intermediária (Sub-ótima)"
         else:
             proximity_label = f"{efficiency_pct}% de proximidade — Distante da Solução Ideal"
@@ -208,14 +187,11 @@ def checkout_round():
                     "exact_total": player_exact_total,
                     "over_budget": over_budget,
                     "merchant_score": player_merchant_score,
-                    "guess_bonus_points": guess_bonus_points,
-                    "total_final_score": (
-                        0 if over_budget else player_merchant_score + guess_bonus_points
-                    ),
+                    "total_final_score": 0 if over_budget else player_merchant_score,
                     "efficiency_vs_dp_percent": efficiency_pct,
                     "proximity_label": proximity_label,
                     "points_missing": points_missing,
-                    "guess_results": guess_results,
+                    "beat_greedy": beat_greedy,
                 },
                 "soap_guild_receipt": {
                     "amount_numeric": amount_for_soap,
@@ -239,7 +215,7 @@ def checkout_round():
 
 if __name__ == "__main__":
     print("=" * 72)
-    print(" O MERCADOR DA STEAM - REST (JSON) + SOAP (WSDL/XML) + PROG. DINÂMICA")
+    print(" O MERCADOR DA STEAM - REST (JSON) + SOAP (WSDL/XML) + MOCHILA 0/1 (10 JOGOS)")
     print(" Acesse no navegador: http://127.0.0.1:5000")
     print("=" * 72)
     app.run(host="127.0.0.1", port=5000, debug=True)

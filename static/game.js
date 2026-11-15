@@ -1,4 +1,4 @@
-// Script básico de teste para consumir /api/round e /api/checkout
+// Script básico de teste para consumir /api/round (10 jogos + Twist) e /api/checkout
 
 let currentRound = {
   budget: 30,
@@ -6,13 +6,11 @@ let currentRound = {
   selectedIds: new Set(),
   hints: [],
   revealedHintsCount: 0,
-  pricesRevealed: false,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnNewRound").addEventListener("click", loadNewRound);
   document.getElementById("btnHint").addEventListener("click", revealNextHint);
-  document.getElementById("btnTogglePrices").addEventListener("click", togglePricesVisibility);
   document.getElementById("btnCheckout").addEventListener("click", submitCheckout);
 
   loadNewRound();
@@ -22,7 +20,7 @@ async function loadNewRound() {
   const budget = parseInt(document.getElementById("budgetSelect").value, 10) || 30;
   const gamesGrid = document.getElementById("gamesGrid");
   document.getElementById("roundResultPanel").style.display = "none";
-  gamesGrid.innerHTML = "Buscando dados da API REST e SOAP...";
+  gamesGrid.innerHTML = "Buscando 10 jogos da API REST e validando orçamento no SOAP...";
 
   try {
     const response = await fetch(`/api/round?budget=${budget}`);
@@ -33,12 +31,17 @@ async function loadNewRound() {
     currentRound.selectedIds = new Set();
     currentRound.hints = (data.dp_optimization && data.dp_optimization.hints) || [];
     currentRound.revealedHintsCount = 0;
-    currentRound.pricesRevealed = false;
 
     document.getElementById("budgetAmount").textContent = `$${data.budget}`;
-    document.getElementById("budgetWordsSoap").textContent = data.budget_in_words_soap;
+    document.getElementById("budgetWordsSoap").textContent = `"${data.budget_in_words_soap} dollars"`;
     document.getElementById("hintsList").innerHTML = "";
     document.getElementById("hintCounter").textContent = `0/${currentRound.hints.length}`;
+
+    if (data.twist) {
+      document.getElementById("twistName").textContent = data.twist.name;
+      document.getElementById("twistRule").textContent =
+        `${data.twist.rule} (${data.twist.affected_games_count} jogos afetados nesta rodada)`;
+    }
 
     renderGamesTable();
     updateCartSummary();
@@ -52,32 +55,32 @@ function renderGamesTable() {
   const gamesGrid = document.getElementById("gamesGrid");
   let html = `<table border="1" cellpadding="5" cellspacing="0">
     <tr>
+      <th>#</th>
       <th>Imagem</th>
       <th>Título</th>
       <th>Metacritic</th>
-      <th>Pontos</th>
-      <th>Preço</th>
-      <th>Chute ($)</th>
+      <th>Desconto Steam</th>
+      <th>Custo na Mochila</th>
+      <th>Pontos (Valor)</th>
+      <th>Modificador (Twist)</th>
       <th>Ação</th>
     </tr>`;
 
-  currentRound.games.forEach((game) => {
+  currentRound.games.forEach((game, idx) => {
     const isSelected = currentRound.selectedIds.has(String(game.gameID));
-    const priceText = currentRound.pricesRevealed
-      ? `$${game.salePrice.toFixed(2)} (Custo: $${game.discreteCost})`
-      : `Oculto (Normal: $${game.normalPrice.toFixed(2)})`;
-
     html += `
       <tr>
-        <td><img src="${game.thumb}" width="90" alt="${game.title}"></td>
-        <td>${game.title}</td>
+        <td>${idx + 1}</td>
+        <td><img src="${game.thumb}" width="85" alt="${game.title}"></td>
+        <td><b>${game.title}</b></td>
         <td>${game.metacriticScore}</td>
-        <td>+${game.merchantValue}</td>
-        <td>${priceText}</td>
-        <td><input type="number" step="0.01" class="price-guess-input" data-game-id="${game.gameID}" style="width:70px;"></td>
+        <td>-${game.savingsPercent}% (De $${game.normalPrice.toFixed(2)} por $${game.salePrice.toFixed(2)})</td>
+        <td><b>$${game.discreteCost}</b></td>
+        <td><b>+${game.merchantValue} pts</b></td>
+        <td>${game.twistTag || "—"}</td>
         <td>
           <button class="btn-select-game" data-game-id="${game.gameID}">
-            ${isSelected ? "[X] Remover" : "[ ] Selecionar"}
+            ${isSelected ? "[X] Na Mochila (Remover)" : "[ ] Colocar na Mochila"}
           </button>
         </td>
       </tr>
@@ -111,8 +114,10 @@ function updateCartSummary() {
       totalScore += g.merchantValue;
     }
   });
-  document.getElementById("cartCost").textContent = `$${totalCost} / $${currentRound.budget}`;
-  document.getElementById("cartCount").textContent = `${currentRound.selectedIds.size} itens`;
+  const costEl = document.getElementById("cartCost");
+  costEl.textContent = `$${totalCost} / $${currentRound.budget}`;
+  costEl.style.color = totalCost > currentRound.budget ? "red" : "black";
+  document.getElementById("cartCount").textContent = `${currentRound.selectedIds.size} jogo(s)`;
   document.getElementById("cartScore").textContent = `${totalScore} pts`;
 }
 
@@ -127,19 +132,7 @@ function revealNextHint() {
     `${currentRound.revealedHintsCount}/${currentRound.hints.length}`;
 }
 
-function togglePricesVisibility() {
-  currentRound.pricesRevealed = !currentRound.pricesRevealed;
-  renderGamesTable();
-}
-
 async function submitCheckout() {
-  const priceGuesses = {};
-  document.querySelectorAll(".price-guess-input").forEach((input) => {
-    if (input.value.trim() !== "") {
-      priceGuesses[input.dataset.gameId] = input.value.trim();
-    }
-  });
-
   const response = await fetch("/api/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -147,14 +140,10 @@ async function submitCheckout() {
       budget: currentRound.budget,
       games: currentRound.games,
       selectedGameIds: Array.from(currentRound.selectedIds),
-      priceGuesses,
     }),
   });
 
   const data = await response.json();
-  currentRound.pricesRevealed = true;
-  renderGamesTable();
-
   const receipt = data.soap_guild_receipt;
   document.getElementById("soapLatency").textContent = `${receipt.latency_ms} ms`;
   document.getElementById("soapBytes").textContent = `${receipt.payload_bytes} bytes`;
@@ -169,17 +158,26 @@ async function submitCheckout() {
 
   const player = data.player;
   const dp = data.dp_optimization;
+  const greedy = dp.greedy_baseline;
+
   document.getElementById("resPlayerScore").textContent = `${player.total_final_score} pts`;
-  document.getElementById("resPlayerDetails").textContent = `Mochila: ${player.merchant_score} pts | Gasto: $${player.exact_total.toFixed(2)}`;
+  document.getElementById("resPlayerDetails").textContent =
+    `Custo Mochila: $${player.discrete_cost} (Exato: $${player.exact_total.toFixed(2)})`;
+
+  document.getElementById("resGreedyDetails").textContent =
+    `${greedy.greedy_score} pts (Custo: $${greedy.greedy_cost}) — PD supera a escolha gulosa em +${greedy.dp_beats_greedy_by} pts`;
+
   document.getElementById("resOptimalScore").textContent = `${dp.max_merchant_value} pts`;
-  document.getElementById("resOptimalDetails").textContent = `Custo: $${dp.total_exact_price.toFixed(2)}`;
+  document.getElementById("resOptimalDetails").textContent =
+    `Custo Mochila: $${dp.total_discrete_cost} (Exato: $${dp.total_exact_price.toFixed(2)})`;
+
   document.getElementById("resEfficiency").textContent =
     `${player.proximity_label} (Faltaram ${player.points_missing} pts para o ótimo)`;
   document.getElementById("resComplexity").textContent = dp.complexity_time;
 
   document.getElementById("optimalRouteGames").textContent = dp.optimal_games
-    .map((g) => `${g.title} ($${g.salePrice})`)
-    .join(", ");
+    .map((g) => `${g.title} ($${g.discreteCost} -> +${g.merchantValue} pts)`)
+    .join(" | ");
 
   document.getElementById("dpStepsBody").innerHTML = dp.decision_steps
     .map(
