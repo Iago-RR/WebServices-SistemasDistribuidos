@@ -14,7 +14,11 @@ from services.soap_client import (
     convert_amount_to_dollars_soap,
     convert_number_to_words_soap,
 )
-from services.optimizer import apply_round_twist, solve_optimal_steam_bundle
+from services.optimizer import (
+    apply_round_twist,
+    select_balanced_knapsack_games,
+    solve_optimal_steam_bundle,
+)
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -45,13 +49,10 @@ def create_round():
             min_metacritic=65,
         )
 
-        available_games = [
-            g for g in rest_data["games"] if 1 <= g["discreteCost"] <= budget - 2
-        ]
-        if len(available_games) < 10:
-            available_games = rest_data["games"]
-
-        sampled_games = random.sample(available_games, k=min(10, len(available_games)))
+        # Seleciona 10 jogos balanceados por faixas de orçamento (Leves, Médios e Pesados)
+        sampled_games = select_balanced_knapsack_games(
+            rest_data["games"], budget=budget, target_count=10
+        )
 
         # Aplica o "Twist" (Evento de Mercado da Rodada) nos 10 jogos
         twist_result = apply_round_twist(sampled_games)

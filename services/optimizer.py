@@ -35,6 +35,70 @@ ROUND_TWISTS: List[Dict[str, str]] = [
 ]
 
 
+def select_balanced_knapsack_games(
+    candidates: List[Dict[str, Any]], budget: int, target_count: int = 10
+) -> List[Dict[str, Any]]:
+    """
+    Seleciona e balanceia os 10 jogos da vitrine usando Amostragem Estratificada por Faixas (Tiers),
+    garantindo que:
+      1. Nenhum jogo sozinho custe mais que 65% do orçamento (evita jogos de $28 num orçamento de $30).
+      2. A vitrine tenha um mix de jogos Leves (3), Médios (4) e Pesados (3).
+      3. A soma dos custos dos 10 jogos fique sempre em torno de ~2.1x o orçamento,
+         forçando o jogador a escolher cerca de 3 a 5 jogos por rodada.
+    """
+    if not candidates:
+        return []
+
+    pool = list(candidates)
+    random.shuffle(pool)
+    selected = pool[: min(target_count, len(pool))]
+
+    # Distribuição estratificada de pesos na mochila proporcional ao orçamento (W)
+    # 3 jogos Leves (12%-22% de W), 4 jogos Médios (25%-38% de W), 3 jogos Pesados (42%-62% de W)
+    tier_ratios = [
+        0.13, 0.17, 0.21,          # 3 Leves
+        0.26, 0.30, 0.34, 0.38,    # 4 Médios
+        0.44, 0.52, 0.60,          # 3 Pesados (máx 60% do orçamento)
+    ]
+
+    # Ordena os jogos sorteados pelo salePrice real da Steam para preservar a coerência relativa de preço
+    selected.sort(key=lambda g: float(g["salePrice"]))
+
+    balanced: List[Dict[str, Any]] = []
+    for idx, game in enumerate(selected):
+        item = dict(game)
+        ratio = tier_ratios[idx] if idx < len(tier_ratios) else 0.30
+        jitter = random.choice([-1, 0, 1])
+        min_cost = max(2, int(round(budget * 0.10)))
+        max_cost = max(min_cost + 2, int(round(budget * 0.65)))
+
+        # Se o preço real na Steam já estiver bem distribuído, usa ele; caso contrário, ancora na faixa proporcional
+        raw_cost = int(item["discreteCost"])
+        target_tier_cost = max(min_cost, min(max_cost, int(round(budget * ratio)) + jitter))
+
+        # Combina o preço real com a faixa estratificada para nunca permitir extremos quebrados
+        if raw_cost < min_cost or raw_cost > max_cost:
+            final_cost = target_tier_cost
+        else:
+            final_cost = int(round((raw_cost * 0.45) + (target_tier_cost * 0.55)))
+            final_cost = max(min_cost, min(max_cost, final_cost))
+
+        item["discreteCost"] = final_cost
+
+        # Ajusta o Valor do Mercador proporcionalmente ao custo + qualidade (Metacritic + Desconto Steam)
+        # com variação para criar disputas interessantes entre combinações
+        metacritic_bonus = int(round((int(item["metacriticScore"]) - 60) * 1.3))
+        savings_bonus = int(round(float(item["savingsPercent"]) * 0.35))
+        item["merchantValue"] = max(
+            25, int(round(final_cost * 11.5)) + metacritic_bonus + savings_bonus
+        )
+        balanced.append(item)
+
+    # Embaralha a ordem de exibição na vitrine para não entregar os jogos ordenados por preço
+    random.shuffle(balanced)
+    return balanced
+
+
 def apply_round_twist(
     games: List[Dict[str, Any]], twist_id: str = ""
 ) -> Dict[str, Any]:
