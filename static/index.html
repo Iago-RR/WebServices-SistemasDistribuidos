@@ -1,91 +1,203 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Teste WebServices - REST + SOAP (Protótipo Mochila 0/1)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MERCADOR DA STEAM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Silkscreen:wght@400;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <h1>Teste de Integração: Mercador da Steam (Mochila 0/1 com 10 Jogos)</h1>
-  <p>Página de teste inicial para validar retorno JSON (CheapShark REST), XML (SOAP WSDL) e Programação Dinâmica.</p>
-  <hr>
+  <!-- Filtro SVG Óptico para Refração Real de Liquid Glass -->
+  <svg class="svg-filters" aria-hidden="true">
+    <defs>
+      <filter id="liquid-lens" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.015" numOctaves="2" seed="4" result="noise" />
+        <feGaussianBlur in="noise" stdDeviation="2" result="smoothNoise" />
+        <feDisplacementMap in="SourceGraphic" in2="smoothNoise" scale="10" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </defs>
+  </svg>
 
-  <div>
-    <label>Orçamento ($): </label>
-    <select id="budgetSelect">
-      <option value="20">20</option>
-      <option value="25">25</option>
-      <option value="30" selected>30</option>
-      <option value="35">35</option>
-      <option value="40">40</option>
-    </select>
-    <button id="btnNewRound">Sortear Nova Rodada (10 Jogos + Evento)</button>
-    <button id="btnHint">Pedir Dica PD (<span id="hintCounter">0/3</span>)</button>
-    <button id="btnCheckout">Finalizar Mochila e Emitir Recibo SOAP</button>
+  <!-- Fundo Pastel Sólido + Formas Pastel Flutuantes + Gota de Liquid Glass Iridescente -->
+  <div class="pastel-stage" aria-hidden="true">
+    <div class="pastel-sphere sphere-lavender"></div>
+    <div class="pastel-sphere sphere-cyan"></div>
+    <div class="pastel-sphere sphere-peach"></div>
+    <div class="pastel-sphere sphere-periwinkle"></div>
+    <div id="liquidDroplet" class="liquid-droplet"></div>
   </div>
 
-  <p style="background:#eee; padding:6px; border:1px solid #999;">
-    <b>TWIST / EVENTO DE MERCADO DA RODADA:</b> <span id="twistName">Carregando...</span> —
-    <span id="twistRule"></span>
-  </p>
+  <div class="page-wrapper">
+    <!-- Topo Centralizado Estilo Slide -->
+    <header class="hero-header">
+      <div class="pixel-tag">MOCHILA 0/1 · 10 JOGOS</div>
+      <h1 class="slide-title" data-text="MERCADOR DA STEAM">MERCADOR DA STEAM</h1>
 
-  <p>
-    <b>Orçamento atual:</b> <span id="budgetAmount">$30</span>
-    (SOAP NumberToWords: <span id="budgetWordsSoap">aguardando...</span>) |
-    <b>Custo na Mochila:</b> <span id="cartCost">$0</span> (<span id="cartCount">0</span>) |
-    <b>Pontos Acumulados:</b> <span id="cartScore">0 pts</span>
-  </p>
+      <!-- Dock Central em Liquid Glass (Estilo Pill Bar) -->
+      <div class="liquid-dock">
+        <div class="dock-item">
+          <span class="dock-label">ORÇAMENTO</span>
+          <select id="budgetSelect" class="dock-select">
+            <option value="20">$20</option>
+            <option value="25">$25</option>
+            <option value="30" selected>$30</option>
+            <option value="35">$35</option>
+            <option value="40">$40</option>
+          </select>
+        </div>
 
-  <div id="hintsList"></div>
-  <hr>
+        <div class="dock-divider"></div>
 
-  <h3>Vitrine com 10 Jogos da Steam (API REST - Preços e Pontos Visíveis)</h3>
-  <div id="gamesGrid">Carregando...</div>
+        <div class="dock-item">
+          <span class="dock-label">MOCHILA</span>
+          <strong id="cartCost" class="dock-value">$0 / $30</strong>
+          <small id="cartCount" class="dock-sub">0/10</small>
+        </div>
 
-  <hr>
-  <div id="roundResultPanel" style="display:none;">
-    <h3>Resultado do Checkout (SOAP + Programação Dinâmica vs Escolha Gulosa)</h3>
-    <p><b>Valor Gasto (Cheque):</b> <span id="soapReceiptNumeric"></span></p>
-    <p><b>Retorno SOAP (NumberToDollars):</b> <span id="soapReceiptWords"></span></p>
-    <p><b>Certificação SOAP de Proximidade (NumberToWords):</b> <span id="soapProximityWords"></span></p>
-    <p><small id="soapReceiptMeta"></small></p>
+        <div class="dock-divider"></div>
 
-    <p><b>Sua Mochila:</b> <span id="resPlayerScore"></span> (<span id="resPlayerDetails"></span>)</p>
-    <p><b>Escolha Gulosa (Intuição Humana):</b> <span id="resGreedyDetails"></span></p>
-    <p><b>Ótimo Global (Programação Dinâmica):</b> <span id="resOptimalScore"></span> (<span id="resOptimalDetails"></span>)</p>
-    <p><b>Proximidade da Solução Ideal (Mochila 0/1):</b> <span id="resEfficiency"></span> | <span id="resComplexity"></span></p>
+        <div class="dock-item">
+          <span class="dock-label">PONTOS</span>
+          <strong id="cartScore" class="dock-value">0 pts</strong>
+        </div>
 
-    <p><b>Jogos da Rota Ótima (PD):</b> <span id="optimalRouteGames"></span></p>
+        <div class="dock-divider"></div>
 
-    <table border="1" cellpadding="4" cellspacing="0">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Jogo (1 a 10)</th>
-          <th>Decisão PD</th>
-          <th>Custo Mochila</th>
-          <th>Valor</th>
-          <th>Motivo (Subproblema DP[i][w])</th>
-        </tr>
-      </thead>
-      <tbody id="dpStepsBody"></tbody>
-    </table>
-    <hr>
+        <div class="dock-actions">
+          <button id="btnHint" class="pill-btn glitch-pill">
+            Dica PD (<span id="hintCounter">0/3</span>)
+          </button>
+          <button id="btnNewRound" class="pill-btn glass-btn">
+            Sortear Rodada
+          </button>
+          <button id="btnCheckout" class="pill-btn solid-navy-btn">
+            Finalizar Mochila
+          </button>
+        </div>
+      </div>
+
+      <!-- Pílula Central do Evento da Rodada (Twist) -->
+      <div class="twist-bar liquid-glass">
+        <span class="glitch-badge">TWIST</span>
+        <strong id="twistName" class="twist-title">Carregando evento...</strong>
+        <span id="twistRule" class="twist-desc"></span>
+      </div>
+
+      <!-- Lista de Dicas (Quando Acionadas) -->
+      <div id="hintsList" class="hints-wrapper"></div>
+    </header>
+
+    <!-- Palco Principal Centralizado: Os 10 Jogos -->
+    <main class="games-stage">
+      <div id="gamesGrid" class="games-centered-grid">
+        <div class="liquid-glass loading-state">Carregando vitrine de 10 jogos...</div>
+      </div>
+    </main>
+
+    <!-- Resultado do Checkout (Centralizado) -->
+    <section id="roundResultPanel" class="result-stage liquid-glass hidden">
+      <div class="result-top-bar">
+        <span class="glitch-badge">CHECKOUT SOAP + PROGRAMAÇÃO DINÂMICA</span>
+        <h2 class="result-heading">Veredito da Rodada</h2>
+      </div>
+
+      <!-- Recibo SOAP em Liquid Glass Iridescente -->
+      <div class="soap-glass-card">
+        <div class="soap-card-header">
+          <span class="pixel-tag">RECIBO SOAP · WSDL XML</span>
+          <span id="soapReceiptMeta" class="soap-meta-text"></span>
+        </div>
+        <div id="soapReceiptNumeric" class="soap-big-amount">$0.00 USD</div>
+        <div id="soapReceiptWords" class="soap-words-text">"zero dollars"</div>
+        <div id="soapProximityWords" class="soap-prox-pill"></div>
+      </div>
+
+      <!-- 3 Cards de Comparação -->
+      <div class="compare-row">
+        <div class="compare-tile liquid-glass-inner">
+          <span class="dock-label">SUA MOCHILA</span>
+          <strong id="resPlayerScore" class="compare-val">0 pts</strong>
+          <span id="resPlayerDetails" class="compare-sub">Peso: $0</span>
+        </div>
+
+        <div class="compare-tile liquid-glass-inner highlight-tile">
+          <span class="dock-label">ROTA ÓTIMA (PD)</span>
+          <strong id="resOptimalScore" class="compare-val">0 pts</strong>
+          <span id="resOptimalDetails" class="compare-sub">Peso ideal: $0</span>
+        </div>
+
+        <div class="compare-tile liquid-glass-inner">
+          <span class="dock-label">PROXIMIDADE DO ÓTIMO</span>
+          <strong id="resEfficiency" class="compare-val">0%</strong>
+          <span id="resComplexity" class="compare-sub">O(N · W)</span>
+        </div>
+      </div>
+
+      <!-- Rota Ideal e Tabela DP -->
+      <div class="dp-breakdown">
+        <h3 class="dp-subtitle">Combinação Ideal da Rodada</h3>
+        <div id="optimalRouteGames" class="optimal-chips"></div>
+
+        <div class="table-glass-wrap">
+          <table class="dp-glass-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Jogo</th>
+                <th>Veredito</th>
+                <th>Peso / Preço</th>
+                <th>Valor</th>
+                <th>Por que vale (ou não) a pena?</th>
+              </tr>
+            </thead>
+            <tbody id="dpStepsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gaveta Inferior Retrátil para o Raio-X (REST JSON vs SOAP XML) -->
+    <footer class="telemetry-drawer">
+      <button id="btnToggleInspector" class="pill-btn glitch-pill drawer-toggle">
+        <span>Raio-X: REST (<b id="restLatency">-- ms</b>) vs SOAP (<b id="soapLatency">-- ms</b>)</span>
+        <span id="drawerArrow">▼</span>
+      </button>
+
+      <div id="inspectorBody" class="inspector-drawer-body liquid-glass hidden">
+        <div class="inspector-metrics-bar">
+          <div class="mini-metric">
+            <span class="glitch-badge">REST · JSON</span>
+            <span>Payload: <strong id="restBytes">-- bytes</strong></span>
+            <a href="https://apidocs.cheapshark.com/" target="_blank" rel="noopener">CheapShark Docs ↗</a>
+          </div>
+          <div class="mini-metric">
+            <span class="glitch-badge">SOAP · WSDL/XML</span>
+            <span>Payload: <strong id="soapBytes">-- bytes</strong></span>
+            <a href="https://www.dataaccess.com/webservicesserver/NumberConversion.wso?WSDL" target="_blank" rel="noopener">Arquivo .WSDL ↗</a>
+          </div>
+        </div>
+
+        <div class="glass-tabs">
+          <button class="tab-pill active" data-tab="tabRestJson">JSON Recebido (REST)</button>
+          <button class="tab-pill" data-tab="tabSoapXml">XML Recebido (SOAP)</button>
+          <button class="tab-pill" data-tab="tabSoapReq">XML Enviado (SOAP)</button>
+        </div>
+
+        <div id="tabRestJson" class="raw-viewer active">
+          <pre id="rawRestJson">Aguardando chamada REST...</pre>
+        </div>
+        <div id="tabSoapXml" class="raw-viewer">
+          <pre id="rawSoapXml">Aguardando chamada SOAP...</pre>
+        </div>
+        <div id="tabSoapReq" class="raw-viewer">
+          <pre id="rawSoapReq">Aguardando chamada SOAP...</pre>
+        </div>
+      </div>
+    </footer>
   </div>
-
-  <h3>Logs de Telemetria (Teste Bruto)</h3>
-  <p>
-    REST Latência: <span id="restLatency">--</span> | REST Bytes: <span id="restBytes">--</span> <br>
-    SOAP Latência: <span id="soapLatency">--</span> | SOAP Bytes: <span id="soapBytes">--</span>
-  </p>
-
-  <h4>JSON Bruto Recebido (REST):</h4>
-  <pre id="rawRestJson" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
-
-  <h4>XML Recebido (SOAP Response):</h4>
-  <pre id="rawSoapXml" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
-
-  <h4>XML Enviado (SOAP Request):</h4>
-  <pre id="rawSoapReq" style="border:1px solid #000; padding:6px; max-height:200px; overflow:auto;">Aguardando...</pre>
 
   <script src="/static/game.js"></script>
 </body>

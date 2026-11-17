@@ -14,6 +14,11 @@ import requests
 CHEAPSHARK_BASE_URL = "https://www.cheapshark.com/api/1.0"
 CHEAPSHARK_DOCS_URL = "https://apidocs.cheapshark.com/"
 
+# Cache em memória (TTL de 5 minutos) + último resultado válido para proteger contra Rate Limit (HTTP 429)
+_REST_CACHE: Dict[str, Dict[str, Any]] = {}
+_LAST_SUCCESSFUL_REST_RESULT: Optional[Dict[str, Any]] = None
+CACHE_TTL_SECONDS = 300
+
 
 def fetch_steam_deals(
     page_size: int = 25,
@@ -21,13 +26,22 @@ def fetch_steam_deals(
     lower_price: int = 1,
     min_metacritic: int = 65,
     page_number: Optional[int] = None,
+    use_cache: bool = True,
 ) -> Dict[str, Any]:
     """
     Consulta ofertas reais de jogos da Steam na API REST pública CheapShark.
-    Retorna os dados processados e as métricas técnicas da requisição REST (JSON).
+    Inclui cache em memória com TTL e fallback contra Rate Limiting (HTTP 429).
     """
+    global _LAST_SUCCESSFUL_REST_RESULT
     if page_number is None:
         page_number = random.randint(0, 8)
+
+    cache_key = f"{page_size}:{upper_price}:{lower_price}:{min_metacritic}:{page_number}"
+    now = time.time()
+    if use_cache and cache_key in _REST_CACHE:
+        cached_entry = _REST_CACHE[cache_key]
+        if now - cached_entry["timestamp"] < CACHE_TTL_SECONDS:
+            return cached_entry["data"]
 
     params = {
         "storeID": "1",  # 1 = Steam
@@ -46,10 +60,15 @@ def fetch_steam_deals(
     }
 
     start_time = time.perf_counter()
-    response = requests.get(endpoint, params=params, headers=headers, timeout=12)
-    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+    try:
+        response = requests.get(endpoint, params=params, headers=headers, timeout=12)
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        response.raise_for_status()
+    except Exception:
+        if _LAST_SUCCESSFUL_REST_RESULT is not None:
+            return _LAST_SUCCESSFUL_REST_RESULT
+        raise
 
-    response.raise_for_status()
     raw_text = response.text
     payload_bytes = len(response.content)
     raw_items: List[Dict[str, Any]] = response.json()
@@ -101,7 +120,7 @@ def fetch_steam_deals(
     sample_json_obj = raw_items[:2] if raw_items else []
     raw_json_sample = json.dumps(sample_json_obj, indent=2, ensure_ascii=False)
 
-    return {
+    result_payload = {
         "protocol": "REST",
         "format": "JSON",
         "endpoint": response.url,
@@ -114,6 +133,9 @@ def fetch_steam_deals(
         "raw_json_sample": raw_json_sample,
         "raw_json_first_item": raw_items[0] if raw_items else {},
     }
+    _REST_CACHE[cache_key] = {"timestamp": now, "data": result_payload}
+    _LAST_SUCCESSFUL_REST_RESULT = result_payload
+    return result_payload
 
 
 if __name__ == "__main__":

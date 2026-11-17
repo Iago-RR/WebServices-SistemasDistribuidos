@@ -234,7 +234,7 @@ def solve_optimal_steam_bundle(
             decision_steps.append(
                 {
                     "step": len(decision_steps) + 1,
-                    "action": "INCLUÍDO NA ROTA ÓTIMA",
+                    "action": "Entrou na Mochila Ideal",
                     "title": game["title"],
                     "cost": cost,
                     "exactPrice": game["salePrice"],
@@ -242,26 +242,32 @@ def solve_optimal_steam_bundle(
                     "budgetBefore": w_rem,
                     "budgetAfter": w_rem - cost,
                     "reason": (
-                        f"DP[{i}][{w_rem}] ({dp[i][w_rem]}) > DP[{i-1}][{w_rem}] ({dp[i-1][w_rem]}): "
-                        f"ganho líquido de +{val} pts por ${cost}."
+                        f"Ótimo negócio! Somou +{val} pts por apenas ${cost} "
+                        f"(usou ${cost} dos ${w_rem} que ainda restavam na carteira)."
                     ),
                 }
             )
             w_rem -= cost
         else:
+            if cost > w_rem:
+                discard_reason = (
+                    f"Não cabia no bolso: custava ${cost}, mas só restavam ${w_rem} disponíveis."
+                )
+            else:
+                discard_reason = (
+                    f"Pegadinha! Guardar os ${cost} deste jogo permitiu levar outros jogos que juntos somam mais pontos."
+                )
             decision_steps.append(
                 {
                     "step": len(decision_steps) + 1,
-                    "action": "DESCARTADO PELA PD",
+                    "action": "Ficou de Fora",
                     "title": game["title"],
                     "cost": cost,
                     "exactPrice": game["salePrice"],
                     "merchantValue": val,
                     "budgetBefore": w_rem,
                     "budgetAfter": w_rem,
-                    "reason": (
-                        f"Custo (${cost}) excede orçamento restante (${w_rem}) ou combinação alternativa rende mais pontos."
-                    ),
+                    "reason": discard_reason,
                 }
             )
 
@@ -315,10 +321,10 @@ def solve_optimal_steam_bundle(
         anchor_game = max(optimal_games, key=lambda g: g["merchantValue"])
         hints.append(
             {
-                "level": "Dica 2 — Peça-Chave da Solução Ótima",
+                "level": "Dica 2 — Compra Garantida",
                 "text": (
-                    f"Na tabela DP[{n}][{W}], a rota ideal inclui obrigatoriamente '{anchor_game['title']}' "
-                    f"(Custo: ${anchor_game['discreteCost']} | +{anchor_game['merchantValue']} pts)."
+                    f"Segredo do Mercador: a combinação perfeita desta rodada inclui com certeza '{anchor_game['title']}' "
+                    f"(Peso: ${anchor_game['discreteCost']} | +{anchor_game['merchantValue']} pts)."
                 ),
             }
         )

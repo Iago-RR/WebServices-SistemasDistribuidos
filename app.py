@@ -6,6 +6,7 @@ Integra:
   3. Otimizador de Programação Dinâmica (Mochila 0/1, Eventos de Mercado e Comparação Gulosa)
 """
 
+from concurrent.futures import ThreadPoolExecutor
 import random
 from flask import Flask, jsonify, request, send_from_directory
 from services.rest_client import fetch_steam_deals
@@ -42,12 +43,18 @@ def create_round():
         requested_budget = request.args.get("budget", type=int)
         budget = requested_budget if requested_budget else random.choice([20, 25, 30, 35, 40])
 
-        rest_data = fetch_steam_deals(
-            page_size=40,
-            upper_price=max(18, budget - 2),
-            lower_price=1,
-            min_metacritic=65,
-        )
+        # Dispara as chamadas REST (CheapShark) e SOAP (NumberToWords) concorrentemente (não-bloqueante entre si)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_rest = executor.submit(
+                fetch_steam_deals,
+                40,
+                max(18, budget - 2),
+                1,
+                65,
+            )
+            future_soap = executor.submit(convert_number_to_words_soap, budget)
+            rest_data = future_rest.result()
+            soap_budget_data = future_soap.result()
 
         # Seleciona 10 jogos balanceados por faixas de orçamento (Leves, Médios e Pesados)
         sampled_games = select_balanced_knapsack_games(
@@ -61,9 +68,6 @@ def create_round():
 
         # Calcula a solução ótima via Programação Dinâmica (Mochila 0/1)
         dp_solution = solve_optimal_steam_bundle(round_games, budget)
-
-        # Consome o Web Service SOAP (WSDL) para converter o orçamento da rodada por extenso
-        soap_budget_data = convert_number_to_words_soap(budget)
 
         return jsonify(
             {
@@ -149,16 +153,21 @@ def checkout_round():
         else:
             proximity_label = f"{efficiency_pct}% de proximidade — Distante da Solução Ideal"
 
-        # 1) Chama o Web Service SOAP (NumberToDollars) para emitir o cheque oficial da compra
+        # Dispara as 2 chamadas SOAP (Cheque em Dólares + Certificação de Proximidade) em paralelo
         amount_for_soap = (
             player_exact_total
             if player_exact_total > 0
             else float(dp_solution["total_exact_price"])
         )
-        soap_receipt = convert_amount_to_dollars_soap(amount_for_soap)
-
-        # 2) Chama o Web Service SOAP (NumberToWords) para certificar por extenso a % de proximidade da Mochila 0/1
-        soap_proximity = certify_knapsack_proximity_soap(efficiency_pct)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_receipt = executor.submit(
+                convert_amount_to_dollars_soap, amount_for_soap
+            )
+            future_proximity = executor.submit(
+                certify_knapsack_proximity_soap, efficiency_pct
+            )
+            soap_receipt = future_receipt.result()
+            soap_proximity = future_proximity.result()
 
         combined_soap_request = (
             f"<!-- 1. Requisição SOAP: NumberToDollars (${amount_for_soap:.2f}) -->\n"

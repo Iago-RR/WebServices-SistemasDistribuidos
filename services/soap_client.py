@@ -29,6 +29,8 @@ SOAP_DOCS_URL = "https://www.dataaccess.com/webservicesserver/NumberConversion.w
 SOAP_NAMESPACE = "http://www.dataaccess.com/webservicesserver/"
 
 _CACHED_ZEEP_CLIENT: Optional[ Tuple[Any, Any] ] = None
+_SOAP_WORDS_CACHE: Dict[int, Dict[str, Any]] = {}
+_SOAP_DOLLARS_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
 def _get_zeep_client() -> Tuple[Any, Any]:
@@ -62,13 +64,16 @@ def _pretty_format_xml(xml_string: str) -> str:
         return xml_string.strip()
 
 
-def convert_amount_to_dollars_soap(amount: float) -> Dict[str, Any]:
+def convert_amount_to_dollars_soap(amount: float, use_cache: bool = True) -> Dict[str, Any]:
     """
     Consome a operação SOAP 'NumberToDollars' definida no WSDL público.
     Converte um valor numérico (ex: 34.97) para seu cheque oficial em extenso em inglês
     (ex: 'thirty four dollars and ninety seven cents'), capturando o bloco XML real.
     """
     decimal_value = Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    cache_key = str(decimal_value)
+    if use_cache and cache_key in _SOAP_DOLLARS_CACHE:
+        return _SOAP_DOLLARS_CACHE[cache_key]
 
     if ZEEP_AVAILABLE:
         try:
@@ -94,7 +99,7 @@ def convert_amount_to_dollars_soap(amount: float) -> Dict[str, Any]:
                 payload_bytes = len(recv_bytes)
                 received_envelope = recv_bytes.decode("utf-8")
 
-            return {
+            res = {
                 "protocol": "SOAP 1.1 (WSDL / Zeep)",
                 "format": "XML",
                 "wsdl_url": SOAP_WSDL_URL,
@@ -107,6 +112,8 @@ def convert_amount_to_dollars_soap(amount: float) -> Dict[str, Any]:
                 "raw_xml_request": sent_envelope.strip(),
                 "raw_xml_response": received_envelope.strip(),
             }
+            _SOAP_DOLLARS_CACHE[cache_key] = res
+            return res
         except Exception:
             pass
 
@@ -163,12 +170,14 @@ def convert_amount_to_dollars_soap(amount: float) -> Dict[str, Any]:
     }
 
 
-def convert_number_to_words_soap(number: int) -> Dict[str, Any]:
+def convert_number_to_words_soap(number: int, use_cache: bool = True) -> Dict[str, Any]:
     """
     Consome a operação SOAP 'NumberToWords' definida no WSDL público.
     Converte um número inteiro (ex: orçamento da rodada) em palavras por extenso via XML.
     """
     clean_int = max(0, int(number))
+    if use_cache and clean_int in _SOAP_WORDS_CACHE:
+        return _SOAP_WORDS_CACHE[clean_int]
 
     soap_request_xml = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
@@ -207,7 +216,7 @@ def convert_number_to_words_soap(number: int) -> Dict[str, Any]:
             result_text = elem.text.strip()
             break
 
-    return {
+    res = {
         "protocol": "SOAP 1.1 (WSDL)",
         "format": "XML",
         "wsdl_url": SOAP_WSDL_URL,
@@ -220,6 +229,8 @@ def convert_number_to_words_soap(number: int) -> Dict[str, Any]:
         "raw_xml_request": _pretty_format_xml(soap_request_xml),
         "raw_xml_response": _pretty_format_xml(raw_response_xml),
     }
+    _SOAP_WORDS_CACHE[clean_int] = res
+    return res
 
 
 def certify_knapsack_proximity_soap(proximity_percent: float) -> Dict[str, Any]:
