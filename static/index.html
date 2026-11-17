@@ -6,38 +6,31 @@
   <title>MERCADOR DA STEAM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Silkscreen:wght@400;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <!-- Filtro SVG Óptico para Refração Real de Liquid Glass -->
-  <svg class="svg-filters" aria-hidden="true">
-    <defs>
-      <filter id="liquid-lens" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.015" numOctaves="2" seed="4" result="noise" />
-        <feGaussianBlur in="noise" stdDeviation="2" result="smoothNoise" />
-        <feDisplacementMap in="SourceGraphic" in2="smoothNoise" scale="10" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </defs>
+  <!-- Filtros SVG Gerados Dinamicamente com Displacement Map (R,G bend + B highlight, refraction=17, bezel=0.6, curvature=7, chroma=0.4, blur=0) -->
+  <svg id="lgSvgDefs" class="svg-filters" aria-hidden="true">
+    <defs id="lgFilterContainer"></defs>
   </svg>
 
-  <!-- Fundo Pastel Sólido + Formas Pastel Flutuantes + Gota de Liquid Glass Iridescente -->
+  <!-- Fundo Pastel Sólido + Esferas Pastel Suaves (Versão do Backup) -->
   <div class="pastel-stage" aria-hidden="true">
     <div class="pastel-sphere sphere-lavender"></div>
     <div class="pastel-sphere sphere-cyan"></div>
     <div class="pastel-sphere sphere-peach"></div>
     <div class="pastel-sphere sphere-periwinkle"></div>
-    <div id="liquidDroplet" class="liquid-droplet"></div>
   </div>
 
   <div class="page-wrapper">
-    <!-- Topo Centralizado Estilo Slide -->
+    <!-- Topo Centralizado -->
     <header class="hero-header">
       <div class="pixel-tag">MOCHILA 0/1 · 10 JOGOS</div>
-      <h1 class="slide-title" data-text="MERCADOR DA STEAM">MERCADOR DA STEAM</h1>
+      <h1 class="slide-title">MERCADOR DA STEAM</h1>
 
-      <!-- Dock Central em Liquid Glass (Estilo Pill Bar) -->
-      <div class="liquid-dock">
+      <!-- Dock Central em Liquid Glass Zero-Frost (blur=0) -->
+      <div id="mainDockLens" class="liquid-dock lg-surface" data-lg-radius="42">
         <div class="dock-item">
           <span class="dock-label">ORÇAMENTO</span>
           <select id="budgetSelect" class="dock-select">
@@ -70,7 +63,7 @@
           <button id="btnHint" class="pill-btn glitch-pill">
             Dica PD (<span id="hintCounter">0/3</span>)
           </button>
-          <button id="btnNewRound" class="pill-btn glass-btn">
+          <button id="btnNewRound" class="pill-btn lens-pill-btn">
             Sortear Rodada
           </button>
           <button id="btnCheckout" class="pill-btn solid-navy-btn">
@@ -80,7 +73,7 @@
       </div>
 
       <!-- Pílula Central do Evento da Rodada (Twist) -->
-      <div class="twist-bar liquid-glass">
+      <div class="twist-bar lg-surface" data-lg-radius="32">
         <span class="glitch-badge">TWIST</span>
         <strong id="twistName" class="twist-title">Carregando evento...</strong>
         <span id="twistRule" class="twist-desc"></span>
@@ -93,18 +86,18 @@
     <!-- Palco Principal Centralizado: Os 10 Jogos -->
     <main class="games-stage">
       <div id="gamesGrid" class="games-centered-grid">
-        <div class="liquid-glass loading-state">Carregando vitrine de 10 jogos...</div>
+        <div class="lg-surface loading-state" data-lg-radius="28">Carregando vitrine de 10 jogos...</div>
       </div>
     </main>
 
     <!-- Resultado do Checkout (Centralizado) -->
-    <section id="roundResultPanel" class="result-stage liquid-glass hidden">
+    <section id="roundResultPanel" class="result-stage lg-surface hidden" data-lg-radius="36">
       <div class="result-top-bar">
         <span class="glitch-badge">CHECKOUT SOAP + PROGRAMAÇÃO DINÂMICA</span>
         <h2 class="result-heading">Veredito da Rodada</h2>
       </div>
 
-      <!-- Recibo SOAP em Liquid Glass Iridescente -->
+      <!-- Recibo SOAP em Liquid Glass -->
       <div class="soap-glass-card">
         <div class="soap-card-header">
           <span class="pixel-tag">RECIBO SOAP · WSDL XML</span>
@@ -117,22 +110,22 @@
 
       <!-- 3 Cards de Comparação -->
       <div class="compare-row">
-        <div class="compare-tile liquid-glass-inner">
+        <div class="compare-tile lg-surface" data-lg-radius="24">
           <span class="dock-label">SUA MOCHILA</span>
           <strong id="resPlayerScore" class="compare-val">0 pts</strong>
           <span id="resPlayerDetails" class="compare-sub">Peso: $0</span>
         </div>
 
-        <div class="compare-tile liquid-glass-inner highlight-tile">
+        <div class="compare-tile lg-surface highlight-tile" data-lg-radius="24">
           <span class="dock-label">ROTA ÓTIMA (PD)</span>
           <strong id="resOptimalScore" class="compare-val">0 pts</strong>
           <span id="resOptimalDetails" class="compare-sub">Peso ideal: $0</span>
         </div>
 
-        <div class="compare-tile liquid-glass-inner">
+        <div class="compare-tile lg-surface" data-lg-radius="24">
           <span class="dock-label">PROXIMIDADE DO ÓTIMO</span>
           <strong id="resEfficiency" class="compare-val">0%</strong>
-          <span id="resComplexity" class="compare-sub">O(N · W)</span>
+          <span id="resComplexity" class="compare-sub">Análise da mochila</span>
         </div>
       </div>
 
@@ -166,7 +159,7 @@
         <span id="drawerArrow">▼</span>
       </button>
 
-      <div id="inspectorBody" class="inspector-drawer-body liquid-glass hidden">
+      <div id="inspectorBody" class="inspector-drawer-body lg-surface hidden" data-lg-radius="28">
         <div class="inspector-metrics-bar">
           <div class="mini-metric">
             <span class="glitch-badge">REST · JSON</span>

@@ -1,9 +1,7 @@
 :root {
-  /* Paleta idêntica ao Slide: Fundo Creme Pastel + Azul Marinho Profundo + Tons Pastel + Glitch RGB */
   --bg-cream: #f2efe9;
   --navy-ink: #232d65;
-  --navy-muted: rgba(35, 45, 101, 0.68);
-  --navy-soft: rgba(35, 45, 101, 0.12);
+  --navy-muted: rgba(35, 45, 101, 0.72);
 
   --pastel-lavender: #c4b5fd;
   --pastel-cyan: #67e8f9;
@@ -13,22 +11,7 @@
   --glitch-cyan: #00e5ff;
   --glitch-magenta: #ff1e8e;
 
-  /* Física de Liquid Glass de Alta Transparência + Borda Iridescente */
-  --glass-bg: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.42) 0%,
-    rgba(255, 255, 255, 0.16) 50%,
-    rgba(196, 181, 253, 0.22) 100%
-  );
-  --glass-border: rgba(255, 255, 255, 0.72);
-  --glass-specular:
-    inset 0 2px 3px rgba(255, 255, 255, 0.92),
-    inset -2px -2px 6px rgba(192, 132, 252, 0.32),
-    inset 2px -2px 6px rgba(34, 211, 238, 0.28),
-    0 16px 38px -12px rgba(35, 45, 101, 0.12);
-
-  --radius-Squircle: 28px;
-  --radius-card: 22px;
+  --radius-card: 26px;
   --radius-pill: 999px;
 }
 
@@ -39,7 +22,9 @@
 }
 
 .svg-filters {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 0;
   height: 0;
   pointer-events: none;
@@ -54,7 +39,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Palco Pastel com Esferas Sólidas Suaves e Gota de Liquid Glass */
+/* Fundo Pastel Sólido com Esferas Suaves (Idêntico ao Backup) */
 .pastel-stage {
   position: fixed;
   inset: 0;
@@ -106,49 +91,24 @@ body {
   animation-delay: -11s;
 }
 
-/* Gota Orgânica de Liquid Glass Iridescente (Inspirada no Slide "OBRIGADO") */
-.liquid-droplet {
-  position: absolute;
-  width: 440px;
-  height: 520px;
-  top: 6%;
-  right: 5%;
-  border-radius: 58% 42% 48% 52% / 44% 56% 44% 56%;
-  background: radial-gradient(
-    circle at 32% 28%,
-    rgba(255, 255, 255, 0.78) 0%,
-    rgba(255, 255, 255, 0.18) 48%,
-    rgba(168, 85, 247, 0.18) 78%,
-    rgba(6, 182, 212, 0.28) 100%
-  );
-  backdrop-filter: blur(12px) saturate(190%);
-  -webkit-backdrop-filter: blur(12px) saturate(190%);
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    inset 10px 10px 24px rgba(255, 255, 255, 0.95),
-    inset -12px -14px 26px rgba(168, 85, 247, 0.42),
-    inset 8px -12px 22px rgba(6, 182, 212, 0.45),
-    inset -4px 4px 12px rgba(35, 45, 101, 0.35),
-    0 24px 50px rgba(35, 45, 101, 0.1);
-  pointer-events: none;
-  opacity: 0.75;
-  animation: morphDroplet 14s ease-in-out infinite alternate;
-}
-
 @keyframes floatSphere {
   0% { transform: translate(0, 0) scale(1); }
   100% { transform: translate(28px, -24px) scale(1.06); }
 }
 
-@keyframes morphDroplet {
-  0% {
-    border-radius: 58% 42% 48% 52% / 44% 56% 44% 56%;
-    transform: rotate(-4deg) translateY(0);
-  }
-  100% {
-    border-radius: 46% 54% 57% 43% / 54% 44% 56% 46%;
-    transform: rotate(4deg) translateY(14px);
-  }
+/*
+ * Superfície <lg-lens> Zero-Frost (blur = 0, specular = 0.5, chroma = 0.4, bezel = 0.6)
+ * Sem névoa leitosa! Interior 98% transparente com refração óptica concentrada na curvatura da borda.
+ */
+.lg-surface {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.8),
+    inset 0 -1.5px 3px rgba(35, 45, 101, 0.14),
+    inset 2px 0 4px rgba(0, 229, 255, 0.22),
+    inset -2px 0 4px rgba(255, 30, 142, 0.22),
+    0 10px 26px -8px rgba(35, 45, 101, 0.1);
 }
 
 /* Container Principal Centralizado */
@@ -161,17 +121,6 @@ body {
   align-items: center;
 }
 
-/* Superfície Base Liquid Glass Ultra Transparente */
-.liquid-glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border: 1.5px solid var(--glass-border);
-  box-shadow: var(--glass-specular);
-  border-radius: var(--radius-Squircle);
-}
-
-/* Header & Tipografia Estilo Slide */
 .hero-header {
   width: 100%;
   display: flex;
@@ -187,25 +136,29 @@ body {
   font-size: 0.74rem;
   letter-spacing: 0.08em;
   color: var(--navy-ink);
-  opacity: 0.85;
+  opacity: 0.88;
 }
 
-/* Título com o efeito de Duplo Contorno Deslocado idêntico ao Slide "OBRIGADO" */
+/*
+ * Fonte Limpa ("Outfit" Black 900) com paint-order: stroke fill
+ * Elimina 100% dos artefatos internos no "A" e no "M" mantendo a estética do slide!
+ */
 .slide-title {
-  font-family: "Syne", sans-serif;
-  font-size: clamp(2rem, 4.2vw, 3.35rem);
-  font-weight: 800;
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(2.2rem, 4.4vw, 3.5rem);
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: rgba(154, 165, 204, 0.78);
-  -webkit-text-stroke: 2px var(--navy-ink);
+  letter-spacing: 0.03em;
+  color: #8f9cc9;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px var(--navy-ink);
   text-shadow:
-    3px 3px 0px rgba(35, 45, 101, 0.28),
-    -2px -1px 0px rgba(0, 229, 255, 0.35);
+    3px 3px 0px var(--navy-ink),
+    -2px -2px 0px rgba(0, 229, 255, 0.45);
   line-height: 1.05;
 }
 
-/* Dock Central em Liquid Glass (Inspirado na 2ª Imagem Enviada) */
+/* Dock Central Zero-Frost */
 .liquid-dock {
   display: flex;
   align-items: center;
@@ -213,15 +166,6 @@ body {
   flex-wrap: wrap;
   gap: 1.15rem;
   padding: 0.75rem 1.4rem;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.48) 0%,
-    rgba(255, 255, 255, 0.18) 100%
-  );
-  backdrop-filter: blur(22px) saturate(190%);
-  -webkit-backdrop-filter: blur(22px) saturate(190%);
-  border: 1.5px solid rgba(255, 255, 255, 0.82);
-  box-shadow: var(--glass-specular);
   border-radius: var(--radius-pill);
 }
 
@@ -246,7 +190,7 @@ body {
 
 .dock-sub {
   font-size: 0.76rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--navy-muted);
 }
 
@@ -255,8 +199,8 @@ body {
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--navy-ink);
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(35, 45, 101, 0.2);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(35, 45, 101, 0.28);
   border-radius: var(--radius-pill);
   padding: 0.2rem 0.65rem;
   cursor: pointer;
@@ -266,7 +210,7 @@ body {
 .dock-divider {
   width: 1.5px;
   height: 24px;
-  background: rgba(35, 45, 101, 0.15);
+  background: rgba(35, 45, 101, 0.18);
 }
 
 .dock-actions {
@@ -276,7 +220,6 @@ body {
   flex-wrap: wrap;
 }
 
-/* Botões Pílula & Efeito "Falha" (Aberração Cromática do Slide) */
 button {
   font-family: inherit;
   cursor: pointer;
@@ -294,9 +237,8 @@ button:active {
   font-weight: 700;
 }
 
-/* Pílula com o Efeito "Falha" Ciano/Magenta idêntico ao botão "Sistemas Distribuídos" do Slide */
 .glitch-pill {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.22);
   color: var(--navy-ink);
   border: 2px solid var(--navy-ink);
   box-shadow:
@@ -311,15 +253,15 @@ button:active {
     4px 3px 0px var(--glitch-magenta);
 }
 
-.glass-btn {
-  background: rgba(255, 255, 255, 0.45);
+.lens-pill-btn {
+  background: rgba(255, 255, 255, 0.12);
   color: var(--navy-ink);
-  border: 1.5px solid rgba(35, 45, 101, 0.3);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(35, 45, 101, 0.35);
+  box-shadow: inset 0 1.5px 2px rgba(255, 255, 255, 0.85);
 }
 
-.glass-btn:hover {
-  background: rgba(255, 255, 255, 0.72);
+.lens-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .solid-navy-btn {
@@ -335,7 +277,6 @@ button:active {
   filter: brightness(1.12);
 }
 
-/* Barra do Twist da Rodada */
 .twist-bar {
   display: inline-flex;
   align-items: center;
@@ -354,7 +295,7 @@ button:active {
   font-weight: 700;
   padding: 0.18rem 0.55rem;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.35);
   color: var(--navy-ink);
   border: 1.5px solid var(--navy-ink);
   box-shadow:
@@ -369,6 +310,7 @@ button:active {
 
 .twist-desc {
   color: var(--navy-muted);
+  font-weight: 600;
 }
 
 .hints-wrapper {
@@ -380,17 +322,16 @@ button:active {
 }
 
 .hint-item {
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.18);
   border: 1.5px solid var(--navy-ink);
   box-shadow: -2px -2px 0px var(--glitch-cyan), 2px 2px 0px var(--glitch-magenta);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 0.55rem 1rem;
   font-size: 0.83rem;
   text-align: left;
 }
 
-/* PALCO PRINCIPAL: OS 10 JOGOS CENTRALIZADOS (5 colunas x 2 linhas no desktop) */
+/* PALCO CENTRAL: 10 JOGOS */
 .games-stage {
   width: 100%;
   display: flex;
@@ -416,25 +357,19 @@ button:active {
   padding: 3rem;
   text-align: center;
   font-weight: 700;
-  color: var(--navy-muted);
+  border-radius: 28px;
 }
 
-/* Card de Jogo em Liquid Glass Ultra Transparente */
+/* Card de Jogo Zero-Frost (blur = 0, alta transparência, refração óptica no bezel) */
 .game-card {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.36) 0%,
-    rgba(255, 255, 255, 0.12) 55%,
-    rgba(196, 181, 253, 0.2) 100%
-  );
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1.5px solid rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.68);
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.95),
-    inset -2px -2px 6px rgba(192, 132, 252, 0.28),
-    inset 2px -2px 6px rgba(34, 211, 238, 0.25),
-    0 12px 28px -8px rgba(35, 45, 101, 0.1);
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 3px rgba(35, 45, 101, 0.15),
+    inset 2px 0 4px rgba(0, 229, 255, 0.25),
+    inset -2px 0 4px rgba(255, 30, 142, 0.25),
+    0 12px 26px -10px rgba(35, 45, 101, 0.1);
   border-radius: var(--radius-card);
   overflow: hidden;
   display: flex;
@@ -445,35 +380,30 @@ button:active {
 
 .game-card:hover {
   transform: translateY(-4px);
-  border-color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.95);
   box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 1),
-    inset -3px -3px 8px rgba(192, 132, 252, 0.4),
-    inset 3px -3px 8px rgba(34, 211, 238, 0.4),
-    0 18px 34px -10px rgba(35, 45, 101, 0.16);
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    inset 3px 0 6px rgba(0, 229, 255, 0.35),
+    inset -3px 0 6px rgba(255, 30, 142, 0.35),
+    0 18px 32px -10px rgba(35, 45, 101, 0.16);
 }
 
-/* Jogo Selecionado: Borda Marinho + Falha Cromática Ciano/Magenta */
 .game-card.selected {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.62) 0%,
-    rgba(196, 181, 253, 0.38) 100%
-  );
+  background: rgba(255, 255, 255, 0.14);
   border: 2px solid var(--navy-ink);
   box-shadow:
     -3.5px -2.5px 0px var(--glitch-cyan),
     3.5px 2.5px 0px var(--glitch-magenta),
-    inset 0 2px 4px rgba(255, 255, 255, 0.95);
+    inset 0 2px 3px rgba(255, 255, 255, 0.9);
 }
 
 .game-thumb-wrap {
   position: relative;
   height: 110px;
   margin: 0.55rem 0.55rem 0;
-  border-radius: 15px;
+  border-radius: 18px;
   overflow: hidden;
-  background: rgba(35, 45, 101, 0.08);
+  background: rgba(35, 45, 101, 0.06);
 }
 
 .game-thumb-wrap img {
@@ -489,16 +419,14 @@ button:active {
   font-weight: 700;
   padding: 0.18rem 0.55rem;
   border-radius: var(--radius-pill);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .meta-pill {
   top: 0.45rem;
   right: 0.45rem;
-  background: rgba(242, 239, 233, 0.88);
+  background: rgba(242, 239, 233, 0.9);
   color: var(--navy-ink);
-  border: 1px solid rgba(35, 45, 101, 0.2);
+  border: 1px solid rgba(35, 45, 101, 0.22);
 }
 
 .score-pill {
@@ -506,7 +434,9 @@ button:active {
   left: 0.45rem;
   background: var(--navy-ink);
   color: var(--bg-cream);
+  font-size: 0.79rem;
   font-weight: 800;
+  padding: 0.24rem 0.68rem;
 }
 
 .game-body {
@@ -533,8 +463,8 @@ button:active {
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--navy-ink);
-  background: rgba(196, 181, 253, 0.45);
-  border: 1px solid rgba(35, 45, 101, 0.22);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(35, 45, 101, 0.25);
   padding: 0.16rem 0.5rem;
   border-radius: var(--radius-pill);
 }
@@ -545,6 +475,7 @@ button:active {
   align-items: center;
   font-size: 0.78rem;
   color: var(--navy-muted);
+  font-weight: 600;
   padding: 0 0.15rem;
   font-variant-numeric: tabular-nums;
 }
@@ -559,15 +490,15 @@ button:active {
   margin-top: auto;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.18);
   color: var(--navy-ink);
-  border: 1.5px solid rgba(35, 45, 101, 0.25);
+  border: 1.5px solid rgba(35, 45, 101, 0.28);
   font-weight: 700;
   font-size: 0.78rem;
 }
 
 .btn-select-game:hover {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.42);
 }
 
 .game-card.selected .btn-select-game {
@@ -576,12 +507,13 @@ button:active {
   border-color: var(--navy-ink);
 }
 
-/* Painel de Resultado (Checkout) */
+/* Resultado do Checkout */
 .result-stage {
   width: 100%;
   max-width: 1080px;
   margin-top: 2rem;
   padding: 1.75rem;
+  border-radius: 36px;
   text-align: center;
 }
 
@@ -594,24 +526,19 @@ button:active {
 }
 
 .result-heading {
-  font-family: "Syne", sans-serif;
-  font-size: 1.5rem;
+  font-family: "Outfit", sans-serif;
+  font-size: 1.55rem;
   font-weight: 800;
   margin-top: 0.4rem;
 }
 
 .soap-glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.58) 0%,
-    rgba(196, 181, 253, 0.28) 50%,
-    rgba(103, 232, 249, 0.28) 100%
-  );
+  background: rgba(255, 255, 255, 0.1);
   border: 2px solid var(--navy-ink);
   box-shadow:
     -4px -3px 0px var(--glitch-cyan),
     4px 3px 0px var(--glitch-magenta),
-    inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.8);
   border-radius: var(--radius-card);
   padding: 1.35rem;
   margin-bottom: 1.35rem;
@@ -628,9 +555,9 @@ button:active {
 }
 
 .soap-big-amount {
-  font-family: "Syne", sans-serif;
-  font-size: 2.15rem;
-  font-weight: 800;
+  font-family: "Outfit", sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
   color: var(--navy-ink);
 }
 
@@ -646,7 +573,7 @@ button:active {
   display: inline-block;
   padding: 0.3rem 0.9rem;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.28);
   border: 1.5px solid var(--navy-ink);
   font-size: 0.84rem;
   font-weight: 700;
@@ -659,11 +586,8 @@ button:active {
   margin-bottom: 1.4rem;
 }
 
-.liquid-glass-inner {
-  background: rgba(255, 255, 255, 0.42);
-  border: 1.5px solid rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
+.compare-tile {
+  border-radius: 24px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -685,7 +609,7 @@ button:active {
 }
 
 .dp-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   font-weight: 800;
   margin-bottom: 0.65rem;
 }
@@ -699,7 +623,7 @@ button:active {
 }
 
 .opt-badge {
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.25);
   border: 1.5px solid var(--navy-ink);
   padding: 0.3rem 0.75rem;
   border-radius: var(--radius-pill);
@@ -709,9 +633,9 @@ button:active {
 
 .table-glass-wrap {
   overflow-x: auto;
-  border-radius: 16px;
-  border: 1.5px solid rgba(35, 45, 101, 0.2);
-  background: rgba(255, 255, 255, 0.4);
+  border-radius: 18px;
+  border: 1.5px solid rgba(35, 45, 101, 0.22);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .dp-glass-table {
@@ -732,7 +656,7 @@ button:active {
   font-weight: 800;
 }
 
-/* Gaveta Inferior do Raio-X (REST vs SOAP) */
+/* Gaveta Inferior do Raio-X */
 .telemetry-drawer {
   width: 100%;
   max-width: 1080px;
@@ -752,6 +676,7 @@ button:active {
   width: 100%;
   margin-top: 1rem;
   padding: 1.35rem;
+  border-radius: 28px;
 }
 
 .inspector-metrics-bar {
@@ -784,7 +709,7 @@ button:active {
 .tab-pill {
   padding: 0.42rem 1rem;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.18);
   color: var(--navy-ink);
   border: 1.5px solid rgba(35, 45, 101, 0.25);
   font-size: 0.78rem;
@@ -799,7 +724,7 @@ button:active {
 
 .raw-viewer {
   display: none;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.2);
   border: 1.5px solid rgba(35, 45, 101, 0.22);
   border-radius: 16px;
   padding: 0.85rem;
